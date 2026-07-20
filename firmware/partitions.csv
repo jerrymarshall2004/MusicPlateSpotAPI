@@ -1,0 +1,13 @@
+# Custom partition table for a 4MB ESP32 (0x400000 total).
+# Two OTA app slots of 1.375MB each (enough for TLS + async web server),
+# plus a ~1.2MB filesystem partition to hold the gzipped web UI.
+#
+# NOTE: the subtype is 'spiffs' even though we format it as LittleFS.
+# The ESP-IDF partition tool has no 'littlefs' subtype keyword; Arduino's
+# LittleFS.begin() mounts the partition labeled "spiffs" by default.
+# Name,     Type, SubType,  Offset,   Size,     Flags
+nvs,        data, nvs,      0x9000,   0x5000,
+otadata,    data, ota,      0xE000,   0x2000,
+app0,       app,  ota_0,    0x10000,  0x160000,
+app1,       app,  ota_1,    0x170000, 0x160000,
+spiffs,     data, spiffs,   0x2D0000, 0x130000,

@@ -1,0 +1,11 @@
+# ---- PlatformIO build output (regenerated on every build) ----
+firmware/.pio/
+firmware/.vscode/
+
+# ---- Real secrets: copy secrets.example.h -> secrets.h locally, never commit ----
+firmware/src/secrets.h
+
+# ---- OS / editor cruft ----
+.DS_Store
+Thumbs.db
+*.swp
