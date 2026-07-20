@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Linking Music Plate…</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; background:#121212; color:#eee;
+           display:grid; place-items:center; height:100vh; margin:0; text-align:center; }
+    .green { color:#1db954; }
+  </style>
+</head>
+<body>
+  <!--
+    Spotify OAuth redirect bridge.
+    ==============================
+    Why this page exists: Spotify only allows HTTPS redirect URIs (or literal
+    127.0.0.1). The ESP32 lives at http://musicplate.local, which Spotify won't
+    accept. So we register THIS page's HTTPS URL as the redirect URI, and it
+    bounces the ?code= straight back to the reader on the local network.
+
+    Deploy: push this file to GitHub Pages (or any static HTTPS host), then set
+    SPOTIFY_REDIRECT_URI in firmware/src/secrets.h to this page's URL and add
+    the same URL to your Spotify app's Redirect URIs.
+
+    Adjust READER_HOST below if you changed MP_HOSTNAME.
+  -->
+  <div>
+    <h2 class="green">♪ Music Plate</h2>
+    <p id="msg">Finishing up… returning to your reader.</p>
+  </div>
+  <script>
+    const READER_HOST = "musicplate.local";
+    const params = new URLSearchParams(location.search);
+    const code = params.get("code");
+    const error = params.get("error");
+
+    if (error) {
+      document.getElementById("msg").textContent = "Spotify authorization was cancelled.";
+    } else if (code) {
+      // Plain navigation (not fetch) -> no CORS, code lands on the ESP32.
+      location.href = "http://" + READER_HOST + "/spotify/callback?code=" + encodeURIComponent(code);
+    } else {
+      document.getElementById("msg").textContent = "Nothing to do — open this from the app.";
+    }
+  </script>
+</body>
+</html>

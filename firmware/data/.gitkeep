@@ -1,0 +1,10 @@
+# Build the web UI into this folder as gzipped files, then upload it to
+# LittleFS with:  pio run -t uploadfs
+#
+# Expected contents (gzip each so the ESP32 serves them pre-compressed):
+#   index.html.gz
+#   style.css.gz
+#   app.js.gz
+#
+# The real app.js replaces the MockAPI layer with fetch() calls to the
+# /api/* endpoints this firmware exposes (see README).
