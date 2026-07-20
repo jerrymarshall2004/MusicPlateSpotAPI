@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Music Plate</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ============ HOME: player list ============ -->
+    <section class="screen active" id="screen-home">
+      <header class="app-header">
+        <div class="logo">
+          <div class="logo-disc"><div class="logo-hole"></div></div>
+          <h1>Music Plate</h1>
+        </div>
+      </header>
+
+      <div class="screen-body">
+        <h2 class="section-title">Your Players</h2>
+        <div id="player-list" class="player-list">
+          <!-- players injected here -->
+        </div>
+        <div id="no-players" class="empty-state hidden">
+          <div class="empty-icon">📀</div>
+          <p>No players set up yet.</p>
+          <p class="muted">Add your first Music Plate reader to get started.</p>
+        </div>
+      </div>
+
+      <footer class="screen-footer">
+        <button class="btn btn-primary" onclick="startSetup()">+ Add Player</button>
+      </footer>
+    </section>
+
+    <!-- ============ SETUP WIZARD ============ -->
+    <section class="screen" id="screen-setup">
+      <header class="app-header">
+        <button class="btn-back" onclick="setupBack()">‹</button>
+        <h1 id="setup-title">Set up player</h1>
+      </header>
+
+      <div class="wizard-progress">
+        <div class="wizard-bar"><div id="wizard-bar-fill" class="wizard-bar-fill"></div></div>
+        <span id="wizard-step-label" class="muted small">Step 1 of 5</span>
+      </div>
+
+      <div class="screen-body">
+
+        <!-- Step 1: find device -->
+        <div class="wizard-step active" id="step-connect">
+          <h2>Find your reader</h2>
+          <p class="muted">Power on your Music Plate reader. It will appear below when in pairing mode.</p>
+          <div class="scan-area">
+            <div id="ble-scanner" class="scanner-ring">
+              <div class="scanner-pulse"></div>
+              <span>Scanning…</span>
+            </div>
+            <div id="ble-results" class="device-results hidden"></div>
+          </div>
+          <p class="muted small center">Connecting over Bluetooth LE (mocked)</p>
+        </div>
+
+        <!-- Step 2: player name -->
+        <div class="wizard-step" id="step-name">
+          <h2>Name this player</h2>
+          <p class="muted">This is how it will show up in the app and on your network.</p>
+          <label class="field">
+            <span>Player name</span>
+            <input type="text" id="input-name" placeholder="e.g. Living Room" maxlength="32">
+          </label>
+          <div class="chip-row">
+            <button class="chip" onclick="fillName('Living Room')">Living Room</button>
+            <button class="chip" onclick="fillName('Kitchen')">Kitchen</button>
+            <button class="chip" onclick="fillName('Bedroom')">Bedroom</button>
+            <button class="chip" onclick="fillName('Office')">Office</button>
+          </div>
+        </div>
+
+        <!-- Step 3: wifi -->
+        <div class="wizard-step" id="step-wifi">
+          <h2>Connect to Wi-Fi</h2>
+          <p class="muted">Networks visible to the reader:</p>
+          <div id="wifi-list" class="wifi-list">
+            <div class="spinner-row"><div class="spinner"></div><span class="muted">Asking reader to scan…</span></div>
+          </div>
+          <label class="field" id="wifi-password-field" style="display:none">
+            <span>Password for <b id="wifi-chosen-name"></b></span>
+            <div class="password-wrap">
+              <input type="password" id="input-wifi-pass" placeholder="Wi-Fi password">
+              <button class="btn-eye" onclick="togglePassword()">👁</button>
+            </div>
+          </label>
+        </div>
+
+        <!-- Step 4: spotify auth -->
+        <div class="wizard-step" id="step-spotify">
+          <h2>Link Spotify</h2>
+          <p class="muted">Music Plate needs permission to control playback on your Spotify account. You'll only do this once — the reader stores a refresh token so it stays linked.</p>
+
+          <div id="spotify-disconnected">
+            <button class="btn btn-spotify" onclick="mockSpotifyAuth()">
+              <span class="spotify-icon">●</span> Connect with Spotify
+            </button>
+            <p class="muted small center" style="margin-top:12px">Requires Spotify Premium for remote playback</p>
+          </div>
+
+          <div id="spotify-connecting" class="hidden center">
+            <div class="spinner big"></div>
+            <p class="muted">Waiting for Spotify authorization…</p>
+          </div>
+
+          <div id="spotify-connected" class="hidden">
+            <div class="account-card">
+              <div class="avatar">J</div>
+              <div>
+                <b id="spotify-user-name">jerry</b>
+                <div class="muted small">Spotify Premium · token acquired</div>
+              </div>
+              <span class="check">✓</span>
+            </div>
+            <div class="token-preview muted small">
+              refresh_token: <code id="token-snippet">AQD…8fKw</code>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5: playback device -->
+        <div class="wizard-step" id="step-device">
+          <h2>Where should music play?</h2>
+          <p class="muted">Choose which Spotify Connect device this reader controls.</p>
+
+          <div class="radio-card" id="mode-active" onclick="selectDeviceMode('active')">
+            <div class="radio-dot"></div>
+            <div>
+              <b>Currently active device</b>
+              <div class="muted small">Plays on whatever device is active — falls back to the last one used.</div>
+            </div>
+          </div>
+
+          <div class="radio-card" id="mode-fixed" onclick="selectDeviceMode('fixed')">
+            <div class="radio-dot"></div>
+            <div>
+              <b>Fixed device</b>
+              <div class="muted small">Always play on one specific speaker.</div>
+            </div>
+          </div>
+
+          <div id="fixed-device-list" class="device-list hidden"></div>
+        </div>
+
+        <!-- Step 6: sending -->
+        <div class="wizard-step" id="step-send">
+          <h2 id="send-title">Sending to reader…</h2>
+          <ul class="send-checklist" id="send-checklist">
+            <li data-step="0"><span class="tick"></span> Transferring settings</li>
+            <li data-step="1"><span class="tick"></span> Reader joining Wi-Fi</li>
+            <li data-step="2"><span class="tick"></span> Verifying Spotify link</li>
+            <li data-step="3"><span class="tick"></span> Ready to spin</li>
+          </ul>
+          <div id="send-done" class="hidden center">
+            <div class="big-check">✓</div>
+            <p><b id="send-done-name"></b> is ready!</p>
+            <button class="btn btn-primary" onclick="finishSetup()">Done</button>
+          </div>
+        </div>
+
+      </div>
+
+      <footer class="screen-footer" id="setup-footer">
+        <button class="btn btn-primary" id="btn-setup-next" onclick="setupNext()" disabled>Continue</button>
+      </footer>
+    </section>
+
+    <!-- ============ PLAYER DETAIL ============ -->
+    <section class="screen" id="screen-player">
+      <header class="app-header">
+        <button class="btn-back" onclick="showScreen('screen-home')">‹</button>
+        <h1 id="player-detail-name">Player</h1>
+        <button class="btn-icon" onclick="deletePlayer()" title="Remove player">🗑</button>
+      </header>
+
+      <div class="screen-body">
+        <div class="now-playing" id="now-playing">
+          <div class="np-art" id="np-art">♪</div>
+          <div class="np-info">
+            <div id="np-track" class="np-track">Nothing playing</div>
+            <div id="np-artist" class="muted small">Place a plate on the reader</div>
+          </div>
+          <div class="np-status" id="np-status"></div>
+        </div>
+
+        <div class="detail-row">
+          <span class="muted">Wi-Fi</span><span id="detail-wifi"></span>
+        </div>
+        <div class="detail-row">
+          <span class="muted">Spotify</span><span id="detail-spotify"></span>
+        </div>
+        <div class="detail-row clickable" onclick="openDeviceSheet()">
+          <span class="muted">Plays on</span>
+          <span><span id="detail-device"></span> <span class="chev">›</span></span>
+        </div>
+
+        <h2 class="section-title" style="margin-top:24px">Plates</h2>
+        <p class="muted small">Plates written with this app. Tags store the album ID, so any plate works on any reader.</p>
+        <div id="plate-list" class="plate-list"></div>
+      </div>
+
+      <footer class="screen-footer">
+        <button class="btn btn-primary" onclick="showScreen('screen-write')">✎ Write a Plate</button>
+      </footer>
+    </section>
+
+    <!-- ============ WRITE PLATE ============ -->
+    <section class="screen" id="screen-write">
+      <header class="app-header">
+        <button class="btn-back" onclick="showScreen('screen-player')">‹</button>
+        <h1>Write a Plate</h1>
+      </header>
+
+      <div class="screen-body">
+        <div id="write-search-phase">
+          <label class="field">
+            <span>Search Spotify albums</span>
+            <input type="search" id="input-album-search" placeholder="Album or artist…" oninput="onAlbumSearch()">
+          </label>
+          <div id="album-results" class="album-results">
+            <p class="muted center" style="padding:32px 0">Search for an album to put on this plate.</p>
+          </div>
+        </div>
+
+        <div id="write-confirm-phase" class="hidden">
+          <div class="album-hero">
+            <div class="album-art big" id="write-art"></div>
+            <h2 id="write-album-name"></h2>
+            <p class="muted" id="write-album-artist"></p>
+            <p class="muted small">Album ID: <code id="write-album-id"></code></p>
+          </div>
+
+          <div id="write-waiting" class="nfc-zone">
+            <div class="nfc-pulse"></div>
+            <p><b>Place the plate on the reader</b></p>
+            <p class="muted small">Writing over NFC…</p>
+          </div>
+
+          <div id="write-success" class="hidden center">
+            <div class="big-check">✓</div>
+            <p><b>Plate written!</b></p>
+            <p class="muted small">Drop it on any reader to play this album.</p>
+            <div style="display:flex; gap:12px; justify-content:center; margin-top:16px">
+              <button class="btn btn-ghost" onclick="resetWriteFlow()">Write another</button>
+              <button class="btn btn-primary" onclick="showScreen('screen-player')">Done</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ BOTTOM SHEET: playback device ============ -->
+    <div class="sheet-backdrop" id="device-sheet" onclick="onSheetBackdrop(event)">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <h2>Where should music play?</h2>
+        <p class="muted small">Applies to this reader. Saved straight to the device.</p>
+
+        <div class="radio-card" id="sheet-mode-active" onclick="sheetSelectMode('active')">
+          <div class="radio-dot"></div>
+          <div>
+            <b>Currently active device</b>
+            <div class="muted small">Plays on whatever device is active.</div>
+          </div>
+        </div>
+
+        <div class="radio-card" id="sheet-mode-fixed" onclick="sheetSelectMode('fixed')">
+          <div class="radio-dot"></div>
+          <div>
+            <b>Fixed device</b>
+            <div class="muted small">Always play on one specific speaker.</div>
+          </div>
+        </div>
+
+        <div id="sheet-device-list" class="device-list hidden"></div>
+
+        <div class="sheet-actions">
+          <button class="btn btn-ghost" onclick="closeDeviceSheet()">Cancel</button>
+          <button class="btn btn-primary" id="sheet-save" onclick="saveDeviceSheet()">Save</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
